@@ -19,6 +19,7 @@ SHELLCOMMANDENTRY gs_vstCommandTable[] =
         { "totalram", "Show Total RAM Size", kShowTotalRAMSize },
         { "strtod", "String To Decial/Hex Convert", kStringToDecimalHexTest },
         { "shutdown", "Shutdown And Reboot OS", kShutdown },
+	{"strto","dummy",},
 };                                     
 
 //==============================================================================
@@ -33,25 +34,136 @@ void kStartConsoleShell( void )
     int iCommandBufferIndex = 0;
     BYTE bKey;
     int iCursorX, iCursorY;
-    char tmpcommand[10]={'c','c','c','c','d','d','w','d'};
+    char tmpcommand[11][30];
+    
     // 프롬프트 출력
     kPrintf( CONSOLESHELL_PROMPTMESSAGE );
-    
+    int num=0;
+    int n=0;
     while( 1 )
     {
-	    int num=0;
+	    
         // 키가 수신될 때까지 대기
         bKey = kGetCh();
-	tmpcommand[num]=bKey;
-	if(bKey== KEY_UP)
+	if(bKey==KEY_DOWN)
 	{
-		num++;
-		kPrintf("%c\n",tmpcommand[num]);
 
+		bKey='\0';
+		int i=0;
+		if(0<=num&&num<9)
+		{
+		if(num!=n){	
+			while(tmpcommand[num][i]!='\0')
+			{
+               		 kGetCursor( &iCursorX, &iCursorY );
+               		 kPrintStringXY( iCursorX-1 , iCursorY, " " );
+               		 kSetCursor( iCursorX - 1, iCursorY );
+
+			i++;
+			}
+		}
+		i=0;
+		if(num<n)
+		num++;
+		kPrintf("%s",&tmpcommand[num]);
+		while(1)
+		{
+			if(tmpcommand[num][i]=='\0')
+			{
+				iCommandBufferIndex=i;
+				break;
+			}
+			vcCommandBuffer[i]=tmpcommand[num][i];
+			i++;
+
+		}
+		}
+		else if(num==9)
+		{
+			bKey='\0';
+			kPrintf("%s",tmpcommand[num+1]);
+		while(tmpcommand[num][i]!='\0')
+		{
+                kGetCursor( &iCursorX, &iCursorY );
+                kPrintStringXY( iCursorX-1 , iCursorY, " " );
+                kSetCursor( iCursorX - 1, iCursorY );
+		
+		i++;
+		}
+		i=0;
+		while(1)
+		{
+			if(tmpcommand[num][i]=='\0')
+			{
+				iCommandBufferIndex=i;
+				break;
+			}
+			vcCommandBuffer[i]=tmpcommand[num][i];
+			i++;
+
+		}
+		}
 
 	}
+	else if(bKey== KEY_UP)
+	{
+		bKey='\0';
+		int i=0;
+		if(num>0&&num<10)
+		{
+		if(num!=n){	
+		while(tmpcommand[num][i]!='\0')
+		{
+                kGetCursor( &iCursorX, &iCursorY );
+                kPrintStringXY( iCursorX-1 , iCursorY, " " );
+                kSetCursor( iCursorX - 1, iCursorY );
+		i++;
+		}
+		}
+		if(num>=1)
+		num--;
+		i=0;
+		
+		kPrintf("%s",&tmpcommand[num]);
+		while(1)
+		{
+			if(tmpcommand[num][i]=='\0')
+			{
+				iCommandBufferIndex=i;
+				break;
+			}
+			vcCommandBuffer[i]=tmpcommand[num][i];
+			i++;
+
+		}
+		}
+		else if(num==0)
+		{
+		while(tmpcommand[num][i]!='\0')
+		{
+                kGetCursor( &iCursorX, &iCursorY );
+                kPrintStringXY( iCursorX , iCursorY, " " );
+                kSetCursor( iCursorX - 1, iCursorY );
+		i++;
+		}
+			bKey='\0';
+			kPrintf("%s",&tmpcommand[num]);
+		i=0;	
+		while(1)
+		{
+			if(tmpcommand[num][i]=='\0')
+			{
+				iCommandBufferIndex=i;
+				break;
+			}
+			vcCommandBuffer[i]=tmpcommand[num][i];
+			i++;
+
+		}
+		}
+	}
         // Backspace 키 처리
-        if( bKey == KEY_BACKSPACE )
+	else if( bKey == KEY_BACKSPACE )
         {
             if( iCommandBufferIndex > 0 )
             {
@@ -67,12 +179,29 @@ void kStartConsoleShell( void )
         else if( bKey == KEY_ENTER )
         {
             kPrintf( "\n" );
-            
+           kPrintf("%s",vcCommandBuffer);
             if( iCommandBufferIndex > 0 )
             {
+		   
                 // 커맨드 버퍼에 있는 명령을 실행
                 vcCommandBuffer[ iCommandBufferIndex ] = '\0';
-                kExecuteCommand( vcCommandBuffer );
+		int u=0;
+		int s=0;
+		while(1)
+		{
+			if(vcCommandBuffer[u]=='\0'){
+				tmpcommand[n][u]='\0';
+			
+				break;}
+			tmpcommand[n][u]=vcCommandBuffer[u];
+			u++;
+		}
+		
+		if(n<=8){
+			n++;
+		num=n;}
+		
+                kExecuteCommand( vcCommandBuffer);
             }
             
             // 프롬프트 출력 및 커맨드 버퍼 초기화
@@ -92,14 +221,113 @@ void kStartConsoleShell( void )
             // TAB은 공백으로 전환
             if( bKey == KEY_TAB )
             {
-                bKey = ' ';
+		    bKey='\0';
+		    int icount;
+   	 	icount = sizeof( gs_vstCommandTable ) / sizeof( SHELLCOMMANDENTRY );
+		    int commandlength=0;
+			int i=0;
+			int check[icount];
+			for(int j=0;j<icount;j++)
+				check[j]=0;
+   		 while(vcCommandBuffer[i]!='\0')
+		 {
+			 commandlength++;
+			 i++;
+
+		 }
+		 i=0;
+
+		for(int j=0;j<icount;j++)
+		{
+			for(int k=0;k<commandlength;k++)
+			{
+				if((vcCommandBuffer[k])== *(gs_vstCommandTable[j].pcCommand+k) ){
+			//	kPrintf("%c",vcCommandBuffer[k]);
+		//		kPrintf("%c",*(gs_vstCommandTable[j].pcCommand+k));
+				check[j]++;
+				}
+			}
+		}	
+		int commandnum=0;
+            	for(int j=0;j<icount;j++)
+		{
+			if(check[j]==commandlength)
+			{
+				commandnum++;
+			}
+		}
+		if(commandnum==1){
+			for(int j=0;j<icount;j++)
+			{
+				if(check[j]==commandlength)
+				{
+				//	kPrintf("%d",commandlength);
+					int k=commandlength;
+					while(*(gs_vstCommandTable[j].pcCommand+k)!='\0'){
+				vcCommandBuffer[k]=*(gs_vstCommandTable[j].pcCommand+k);
+					kPrintf("%c",*(gs_vstCommandTable[j].pcCommand+k));	
+						k++;	
+						}
+					iCommandBufferIndex=k;
+					
+					}
+		}
             }
-            
+		if(commandnum!=1)
+		{
+			char strcmp[commandnum][30];
+			int index=0;
+			for(int j=0;j<icount;j++)
+			{
+				if(check[j]==commandlength)
+				{
+					int leng=0;
+					while(*(gs_vstCommandTable[j].pcCommand+leng)!='\0'){
+			strcmp[index][leng]= *(gs_vstCommandTable[j].pcCommand+leng);
+					leng++;}
+					index++;
+				}
+			}
+			int vertical=0;
+			for(int j=commandlength;j<30;j++){
+				for(int k=0;k<index-1;k++){
+					    if(strcmp[k][j]==strcmp[k+1][j])
+						vertical++;
+							}
+				if(vertical==index-1){
+
+					kPrintf("%c",strcmp[0][j]);	
+					vcCommandBuffer[j]=strcmp[0][j];
+				}
+				else
+				{break;
+				}
+				vertical=0;
+			}
+
+
+		}
+
+
+					
+
+
+
+
+
+	//	kPrintf("sd%d",iCommandBufferIndex);
+	    } 
             // 버퍼에 공간이 남아있을 때만 가능
             if( iCommandBufferIndex < CONSOLESHELL_MAXCOMMANDBUFFERCOUNT )
             {
+		kPrintf( "%c", bKey );
                 vcCommandBuffer[ iCommandBufferIndex++ ] = bKey;
-                kPrintf( "%c", bKey );
+                if(bKey=='3')
+		{
+			kPrintf("fuc");
+			kPrintf("%d",iCommandBufferIndex);
+			kPrintf("%s",vcCommandBuffer);
+		}
             }
         }
     }
